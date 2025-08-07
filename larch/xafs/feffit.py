@@ -754,7 +754,7 @@ def _feffit_resid(params, datasets=None, **kwargs):
     return concatenate([d._residual(params) for d in datasets])
 
 def feffit(paramgroup, datasets, rmax_out=10, path_outputs=True,
-           fix_unused_variables=True,  _larch=None, **kws):
+           fix_unused_variables=True, method='leastsq', _larch=None, **kws):
     """execute a Feffit fit: a fit of feff paths to a list of datasets
 
     Parameters:
@@ -785,7 +785,10 @@ def feffit(paramgroup, datasets, rmax_out=10, path_outputs=True,
         chir_re      real part of chi(R).
         chir_im      imaginary part of chi(R).
     """
-    fit_kws = dict(gtol=1.e-6, ftol=1.e-6, xtol=1.e-6, epsfcn=1.e-10)
+    if method == 'leastsq' or (method == 'least_squares'):
+        fit_kws = dict(gtol=1.e-6, ftol=1.e-6, xtol=1.e-6, epsfcn=1.e-10)
+    else:
+        fit_kws = {}
     if 'tol' in kws:
         tol = kws.pop('tol')
         fit_kws['gtol'] = fit_kws['ftol'] = fit_kws['xtol'] = tol
@@ -841,7 +844,8 @@ def feffit(paramgroup, datasets, rmax_out=10, path_outputs=True,
     fit = Minimizer(_feffit_resid, params, fcn_kws=dict(datasets=datasets),
                     scale_covar=False, **fit_kws)
 
-    result = fit.leastsq()
+    # result = fit.leastsq()
+    result = fit.minimize(method=method)
     dat = concatenate([d._residual(result.params, data_only=True)
                        for d in datasets])
 
